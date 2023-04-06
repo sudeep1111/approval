@@ -1,0 +1,30 @@
+name: Manual Workflow Approval
+
+on:
+  pull_request:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+      - name: Wait for approval
+        id: approval
+        uses: trstringer/manual-approval@v1
+        with:
+          secret: ${{ secrets.APPROVAL_TOKEN }}
+          approvers: alice, bob
+          minimum-approvals: 1
+          issue-title: "Deploying to production"
+          issue-body: "Please approve or deny the deployment to production."
+          exclude-workflow-initiator-as-approver: false
+          additional-approved-words: 'approved, LGTM'
+          additional-denied-words: 'denied, veto'
+    if: ${{ steps.approval.outputs.approved == 'true' }}
+    steps:
+      - name: Deploy to production
+        run: ./deploy.sh
+    else:
+      - name: Notify of denied approval
+        run: echo "Deployment to production was denied."
